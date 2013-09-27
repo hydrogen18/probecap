@@ -5,7 +5,7 @@ import struct
 import json
 import psycopg2
 import datetime
-
+from io import open
 MGMT_TYPE = 0x0
 PROBE_SUBTYPE = 0x04
 BEACON_SUBTYPE = 0x08
@@ -17,19 +17,22 @@ BEACON_FIXED_PARAMETERS = "<xxxxxxxxHH"
 TO_DS_BIT = 2**9
 FROM_DS_BIT = 2**10
 
+def encodeMac(s):
+	return ''.join(( '%.2x' % ord(i) for i in s ))
+
 class Handler(object):
 	def __init__(self,conf):
 		self.conf = conf
 		self.conn = None
 		
-	def getDatabaseConnection():
+	def getDatabaseConnection(self):
 	
 		if self.conn == None:
 			self.conn = psycopg2.connect(**conf)
 			
 		return self.conn
 		
-	def __call__(pkt):
+	def __call__(self,pkt):
 		#If the packet is not a management packet ignore it
 		if not pkt.type == MGMT_TYPE:
 			return	
@@ -58,11 +61,11 @@ class Handler(object):
 		conn = self.getDatabaseConnection()
 		cur = conn.cursor()
 		
-		cur.execute("Select id,lastseen from station where mac is %s;",(srcAddr,))
+		cur.execute("Select id,lastseen from station where mac = %s;",(encodeMac(srcAddr),))
 		r = cur.fetchone()
 		#If never seen, add the station to the database
 		if r == None:
-			cur.execute("Insert into station(mac,firstSeen,lastSeen) VALUES(%s,current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;",(srcAddr,))
+			cur.execute("Insert into station(mac,firstSeen,lastSeen) VALUES(%s,current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;",(encodeMac(srcAddr),))
 			r = cur.fetchone()
 			suid = r
 		#If seen, update the last seen time of the station 
@@ -149,7 +152,8 @@ class Handler(object):
 
 if __name__ == "__main__":
 	iface = sys.argv[1]
-	conf = json.loads(sys.argv[2])			
+	with open(sys.argv[2]) as fin:
+		conf = json.load(fin)			
 	
 	handler = Handler(conf)				
 	sniff(iface=iface,prn=handler)

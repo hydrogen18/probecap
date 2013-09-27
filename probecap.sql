@@ -1,7 +1,7 @@
 
 CREATE TABLE station{
 	id serial not null,
-	mac char(6) not null,
+	mac macaddr not null,
 	firstSeen timestamp without time zone not null,
 	lastSeen timestamp without time zone,
 	PRIMARY KEY(mac)
