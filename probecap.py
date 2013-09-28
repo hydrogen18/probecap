@@ -145,7 +145,7 @@ class Handler(object):
 					update = True
 				else:
 					seen, = r
-					if (datetime.datetime.now() - seen).total_seconds() > (5*60):
+					if (datetime.datetime.utcnow() - seen).total_seconds() > (5*60):
 						update = True
 				
 				if update:
@@ -163,7 +163,7 @@ class Handler(object):
 					update = True
 				else:
 					seen, = r 
-					if (datetime.datetime.now() - seen).total_seconds() > (5*60):
+					if (datetime.datetime.utcnow() - seen).total_seconds() > (5*60):
 						update = True
 					
 				if update:
