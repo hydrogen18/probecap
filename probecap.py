@@ -98,16 +98,23 @@ class Handler(object):
 			tagId,tagLength = struct.unpack(WLAN_MGMT_ELEMENT,tagHeader)
 			tags = tags[struct.calcsize(WLAN_MGMT_ELEMENT):]
 
-			#If the tag id is for SSID and the tag length is not zero
-			#then print it
-			if tagId == 0 and tagLength !=0:
+			#The tag id must be zero for SSID
+			#The tag length must be greater than zero or it is a 
+			#an anonymous probe
+			#The tag length must be less than or equal to 32 or it is
+			#not a valid SSID
 
+			if tagId == 0 and tagLength !=0 and tagLength <=32:
 				ssid = tags[:tagLength]
-				if isBeacon:
-					verb = 'is'
-				else:
-					verb = 'wants'
-				print '%s %s %s' % ( ''.join([ '%.2x' % ord(i) for i in srcAddr]) , verb,ssid, )
+				
+				#Made sure what is extracted is valid UTF 8
+				#Psycopg2 pukes otherwise
+				try:
+					ssid = ssid.decode('utf-8')
+				except UnicodeDecodeError:
+					ssid = None
+					continue
+				
 				break 
 				
 			tags = tags[tagLength:]
