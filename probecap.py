@@ -1,3 +1,7 @@
+
+import logging
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+
 import scapy
 from scapy.all import sniff
 import sys
@@ -169,6 +173,7 @@ class Handler(object):
 				else:
 					cur.close()
 					conn.rollback()
+		
 					
 					
 			
@@ -179,6 +184,6 @@ if __name__ == "__main__":
 		conf = json.load(fin)			
 	
 	handler = Handler(conf)				
-	sniff(iface=iface,prn=handler)
+	sniff(iface=iface,prn=handler,store=0)
 
 	
