@@ -99,7 +99,11 @@ class Handler(object):
 			if tagId == 0 and tagLength !=0:
 
 				ssid = tags[:tagLength]
-				print '%s -> %s' % ( ''.join([ '%.2x' % ord(i) for i in srcAddr]) , ssid, )
+				if isBeacon:
+					verb = 'is'
+				else:
+					verb = 'wants'
+				print '%s %s %s' % ( ''.join([ '%.2x' % ord(i) for i in srcAddr]) , verb,ssid, )
 				break 
 				
 			tags = tags[tagLength:]
@@ -111,7 +115,7 @@ class Handler(object):
 			cur.execute("Select id from ssid where name = %s",(ssid,))
 			r = cur.fetchone()
 			if r == None:
-				cur.execute("Insert into ssid (name) VALUES(%s) returning id;")
+				cur.execute("Insert into ssid (name) VALUES(%s) returning id;",(ssid,))
 				r = cur.fetchone()
 				ssuid, = r
 				cur.close()	
@@ -129,7 +133,7 @@ class Handler(object):
 			
 			update = False
 			if isBeacon:
-				cur.execute("Select seen from beacon where station = %s order by seen desc limit 1;",(suid,))
+				cur.execute("Select seen from beacon left join ssid on beacon.ssid=ssid.id where station = %s and ssid.id = %s order by seen desc limit 1;",(suid,ssuid,))
 				r = cur.fetchone()
 				
 				#If no entry, then update
@@ -137,7 +141,7 @@ class Handler(object):
 					update = True
 				else:
 					seen, = r
-					if datetime.datetime.now() - seen > (5*60):
+					if (datetime.datetime.now() - seen).total_seconds() > (5*60):
 						update = True
 				
 				if update:
@@ -147,8 +151,27 @@ class Handler(object):
 				else:
 					cur.close()
 					conn.rollback()
+			elif isProbe:
+				cur.execute("Select seen from probe left join ssid on probe.ssid=ssid.id where station = %s and ssid.id = %s order by seen desc limit 1;", (suid,ssuid,))
+				r = cur.fetchone()
+				
+				if r == None:
+					update = True
+				else:
+					seen, = r 
+					if (datetime.datetime.now() - seen).total_seconds() > (5*60):
+						update = True
 					
-			cur.close()
+				if update:
+					cur.execute("Insert into probe(station,ssid,seen) VALUES(%s,%s,current_timestamp at time zone 'utc')",(suid,ssuid,))
+					cur.close()
+					conn.commit()
+				else:
+					cur.close()
+					conn.rollback()
+					
+					
+			
 
 if __name__ == "__main__":
 	iface = sys.argv[1]
