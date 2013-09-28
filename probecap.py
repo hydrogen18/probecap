@@ -107,10 +107,10 @@ class Handler(object):
 			if tagId == 0 and tagLength !=0 and tagLength <=32:
 				ssid = tags[:tagLength]
 				
-				#Made sure what is extracted is valid UTF 8
+				#Made sure what is extracted is valid ASCII
 				#Psycopg2 pukes otherwise
 				try:
-					ssid = ssid.decode('utf-8')
+					ssid = ssid.decode('ascii')
 				except UnicodeDecodeError:
 					ssid = None
 					continue
