@@ -34,34 +34,6 @@ if __name__ == "__main__":
     
     plt.close()
     
-    timeBetweenSightings = []
-    backgroundStations = []
-    with conn.cursor() as cur:
-        cur.execute("select station,seen from probe order by station, seen;")
-        
-        oldStation = None
-        sightings = []
-        
-        for row in cur:
-            station, seen = row
-            
-            if oldStation != station:
-                if len(sightings) > 1:
-                    diffSightings = [(sightings[i+1] - sightings[i]).total_seconds() for i in xrange(0,len(sightings)-1)]
-                    averageTimeBetweenSightings = sum(diffSightings)/float(len(diffSightings))
-                    if not averageTimeBetweenSightings < 10*60:
-                        timeBetweenSightings.append(averageTimeBetweenSightings)
-                sightings = []
-            sightings.append(seen)
-            oldStation = station
-        
-        conn.rollback()
-    plt.hist(timeBetweenSightings)
-    plt.title('Average Time Between Sightings In Seconds Per Station')
-    plt.savefig('time_between_sightings.png')
-    
-    plt.close()
-    
     weekdaycnts = [0]*7
     hrdaycnts = [0]*24
     with conn.cursor() as cur:
