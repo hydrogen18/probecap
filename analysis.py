@@ -5,6 +5,7 @@ import os
 import math
 import matplotlib.pyplot as plt
 
+
 import calendar
 from datetime import datetime, timedelta
 
@@ -96,12 +97,13 @@ if __name__ == "__main__":
     hrweekcnts = [0]*(24*7)
     discard = 0
     total = 0
+    stationsBySsid = dict()
     with conn.cursor() as cur:
-        cur.execute("Select station,seen from probe")
+        cur.execute("Select ssid,station,seen from probe")
         
         for row in cur:
             total += 1
-            station,seen = row
+            ssid,station,seen = row
             if station in bgStations:
                 discard += 1
                 continue
@@ -116,6 +118,11 @@ if __name__ == "__main__":
                 hrweekendcnts[seen.hour] += 1
                 
             hrweekcnts[seen.weekday() * 24 + seen.hour] += 1
+            
+            if ssid not in stationsBySsid:
+                stationsBySsid[ssid] = set()
+                
+            stationsBySsid[ssid].add(station)
             
         conn.rollback()
         
@@ -184,8 +191,46 @@ if __name__ == "__main__":
     
     plt.close()
     
-        
-        
+    numSsids = len(stationsBySsid)
+    stationsPerSsid = [ len(i) for i in stationsBySsid.itervalues() ]
+    singleStationCnt = len([i for i  in stationsBySsid.itervalues() if len(i) == 1])
+    print 'Percent of SSIDs having only one station: %f' % (100.0*singleStationCnt/numSsids)
+    
+    plt.pie([numSsids-singleStationCnt,singleStationCnt],labels=['More than one','Exactly one'],colors=['yellowgreen','lightskyblue'],shadow=True,autopct='%1.1f%%',startangle=120.0)
+    plt.axis('equal')
+    plt.title('Fraction of SSIDs probed by One Station')
+    plt.savefig('ssids_probed_by_one_station.png')
+    plt.close()
+    
+    def findCutOffForQuantile(dataset,quantile,step = 0):
+        avg = sum(dataset)/float(len(dataset))
+        if 2**(step+1) == quantile:
+            return avg
+            
+        return findCutOffForQuantile([i for i in dataset if i > avg],quantile,step+1)
+    
+    cutoff = findCutOffForQuantile([len(i) for i in stationsBySsid.itervalues() if len(i) != 1],4)
+    
+    trimmedStationsPerSsid = []
+    trimmedSsids = []
+    
+    for ssid,stations in stationsBySsid.iteritems():
+        if len(stations) > cutoff:
+            with conn.cursor() as cur:
+                cur.execute("Select name from ssid where id = %s" , (ssid,))
+                ssidname, = cur.fetchone()
+                conn.rollback()
+            trimmedStationsPerSsid.append(len(stations))
+            trimmedSsids.append("%s\n(%i)" %(ssidname,len(stations)) )
+    
+    colors = list(plt.rcParams['axes.color_cycle'])
+    colors.remove('k')
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral'] + colors
+    
+    plt.pie(trimmedStationsPerSsid,labels=trimmedSsids,colors=colors,shadow=True,autopct='%1.1f%%',startangle=282.0)
+    plt.title("Stations Per SSID, Upper Quartile")
+    plt.savefig('stations_per_ssid.png')
+    plt.close()    
     
     
     
