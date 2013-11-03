@@ -31,16 +31,11 @@ def identifyBackgroundStations(conn):
                     #Use sample standard deviation since it is assumed some observations
                     #are missed
                     stddev = math.sqrt( 1/ float(len(diffSightings)-1) * sum(math.pow(i - averageTimeBetweenSightings,2.0) for i in diffSightings) )
-                    stddevmean = stddev/math.sqrt(len(diffSightings))
+                    expectedValue = 5*60.0
                     
-                    cl = 1.96
-                    lower = averageTimeBetweenSightings - cl*stddevmean
-                    upper = averageTimeBetweenSightings + cl*stddevmean
-                    
-                    expectedValue = 5*60
-                    if expectedValue > lower and expectedValue < upper:
+                    if abs(averageTimeBetweenSightings - expectedValue)/stddev < 0.1:
                         bgStations.add(oldStation)
-                        print '%i - %i:%f pm %f' %(oldStation, len(sightings),averageTimeBetweenSightings,stddevmean)
+                        print '%i - %i:%f:%f' %(oldStation, len(sightings),averageTimeBetweenSightings,stddev)
                     
                 sightings = list()
             sightings.append(seen)
