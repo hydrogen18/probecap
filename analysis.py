@@ -93,6 +93,7 @@ if __name__ == "__main__":
     hrdaycnts = [0]*24
     hrweekdaycnts = [0]*24
     hrweekendcnts = [0]*24
+    hrweekcnts = [0]*(24*7)
     discard = 0
     total = 0
     with conn.cursor() as cur:
@@ -113,10 +114,13 @@ if __name__ == "__main__":
                 hrweekdaycnts[seen.hour] += 1
             else:
                 hrweekendcnts[seen.hour] += 1
+                
+            hrweekcnts[seen.weekday() * 24 + seen.hour] += 1
             
         conn.rollback()
         
     print 'Discarded %i values, %f%%' % (discard,100*discard/float(total),)
+    
     weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
     index = range(len(weekdaycnts))
     bar_width = 0.25
@@ -128,29 +132,52 @@ if __name__ == "__main__":
     plt.savefig('day_of_week.png')
     plt.close()
     
+    index = range(len(hrweekcnts))
+    plt.bar(index,hrweekcnts,bar_width)
+    plt.xlabel('Hour of Week')
+    plt.ylabel('Probes Captured')
+    plt.title('Probes Captured Per Hour Of Week')
+    plt.xticks(index, [str(i+1) for i in index])
+    plt.savefig('hr_of_week.png')
+    plt.close()
+    #Normalize the hr per day counts.
+    #If a dataset includes all values for N days, divide each by-hour tally by N
+    
+    hrdaycnts = [ i / 7.0 for i in hrdaycnts]
+    hrweekdaycnts = [ i / 5.0 for i in hrweekdaycnts ]
+    hrweekendcnts = [ i / 2.0 for i in hrweekendcnts ] 
+    
+    xmin,xmax,ymin,ymax = plt.axis()
+    ymax = max(hrdaycnts + hrweekdaycnts + hrweekendcnts) * 1.1
+    limits = (xmin,xmax,ymin,ymax)
+    
     
     index = range(len(hrdaycnts))
+    plt.axis(limits)
     plt.bar(index,hrdaycnts,bar_width)
+    
     plt.xlabel('Hour of Day')
-    plt.ylabel('Probes Captured')
+    plt.ylabel('Probes Captured(Normalized)')
     plt.title('Probes Captured Per Hour of Day')
     plt.xticks(index, [str(i+1) for i in index])
     plt.savefig('hr_of_day.png')
     
     plt.close()
     
+    plt.axis(limits)
     plt.bar(index,hrweekdaycnts,bar_width)
     plt.xlabel('Hour of Day')
-    plt.ylabel('Probes Captured')
+    plt.ylabel('Probes Captured(Normalized)')
     plt.title('Probes Captured Per Hour of Day (Weekdays)')
     plt.xticks(index, [str(i+1) for i in index])
     plt.savefig('hr_of_weekday.png')
     
     plt.close()
     
+    plt.axis(limits)
     plt.bar(index,hrweekendcnts,bar_width)
     plt.xlabel('Hour of Day')
-    plt.ylabel('Probes Captured')
+    plt.ylabel('Probes Captured(Normalized)')
     plt.title('Probes Captured Per Hour of Day (Weekend)')
     plt.xticks(index, [str(i+1) for i in index])
     plt.savefig('hr_of_weekend.png')
