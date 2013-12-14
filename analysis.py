@@ -208,22 +208,24 @@ if __name__ == "__main__":
     
     trimmedStationsPerSsid = []
     trimmedSsids = []
+
+    top10Stations = sorted(((ssid,len(stations)) for ssid,stations in stationsBySsid.iteritems()),key = lambda x: x[1],reverse = True)[0:10]
     
-    for ssid,stations in stationsBySsid.iteritems():
-        if len(stations) > cutoff:
-            with conn.cursor() as cur:
-                cur.execute("Select name from ssid where id = %s" , (ssid,))
-                ssidname, = cur.fetchone()
-                conn.rollback()
-            trimmedStationsPerSsid.append(len(stations))
-            trimmedSsids.append("%s\n(%i)" %(ssidname,len(stations)) )
+    for ssid,_ in top10Stations:
+        stations = stationsBySsid[ssid]
+        with conn.cursor() as cur:
+            cur.execute("Select name from ssid where id = %s" , (ssid,))
+            ssidname, = cur.fetchone()
+            conn.rollback()
+        trimmedStationsPerSsid.append(len(stations))
+        trimmedSsids.append("%s\n(%i)" %(ssidname,len(stations)) )
     
     colors = list(plt.rcParams['axes.color_cycle'])
     colors.remove('k')
     colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral'] + colors
     
-    plt.pie(trimmedStationsPerSsid,labels=trimmedSsids,colors=colors,shadow=True,autopct='%1.1f%%',startangle=282.0)
-    plt.title("Stations Per SSID, Upper Quartile")
+    plt.pie(trimmedStationsPerSsid,labels=trimmedSsids,colors=colors,shadow=True,autopct='%1.1f%%',startangle=220.0)
+    plt.title("Stations Per SSID, Top 10")
     plt.savefig('stations_per_ssid.png')
     plt.close()    
     
