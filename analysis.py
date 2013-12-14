@@ -94,7 +94,7 @@ if __name__ == "__main__":
     total = 0
     stationsBySsid = dict()
     with conn.cursor() as cur:
-        cur.execute("Select ssid,station,seen from probe")
+        cur.execute("Select ssid,station,seen from probe where ssid is not null")
         
         for row in cur:
             total += 1
